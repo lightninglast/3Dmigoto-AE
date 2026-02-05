@@ -110,9 +110,12 @@ ADDING MODS:
 $(if ($Package -eq "Dev") {
 @"
 DEV MODE FEATURES:
-- Hunting enabled (Numpad 7/8/9 to cycle shaders/buffers)
+- Hunting enabled (use Numpad keys to find hashes)
+  - Numpad 0: Toggle overlay / Cycle marking mode
+  - Numpad 1/2: Cycle PS, 3: Copy hash
+  - Numpad 4/5: Cycle VS, 6: Copy hash  
+  - Numpad 7/8: Cycle IB, 9: Copy hash
 - Logging enabled (check d3d11_log.txt)
-- Press Numpad 0 to toggle hunting overlay
 "@
 } else {
 @"
