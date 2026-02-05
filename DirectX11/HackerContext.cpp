@@ -508,6 +508,35 @@ void HackerContext::ProcessShaderOverride(ShaderOverride *shaderOverride, bool i
 	}
 }
 
+// Process TextureOverride command lists for the current index buffer at draw time.
+// This enables handling=skip and other commands to work for index buffer hashes,
+// making existing mods compatible without modification.
+void HackerContext::ProcessIndexBufferOverride(DrawContext *data)
+{
+	TextureOverrideMap::iterator i;
+
+	if (G->mTextureOverrideMap.empty() || !mCurrentIndexBuffer)
+		return;
+
+	i = lookup_textureoverride(mCurrentIndexBuffer);
+	if (i == G->mTextureOverrideMap.end())
+		return;
+
+	LogDebug("ProcessIndexBufferOverride: Running command list for IB hash=%08lx\n", mCurrentIndexBuffer);
+
+	// Run command lists for all matching TextureOverride sections
+	for (TextureOverride &to : i->second) {
+		LogDebug("  Processing TextureOverride, command_list has %d commands, skip_before=%d\n", 
+			(int)to.command_list.commands.size(), data->call_info.skip);
+		RunCommandList(mHackerDevice, this, &to.command_list, &data->call_info, false);
+		LogDebug("  After RunCommandList: skip=%d\n", data->call_info.skip);
+		// Store post command list for AfterDraw if needed
+		if (!to.post_command_list.commands.empty()) {
+			data->post_ib_command_list = &to.post_command_list;
+		}
+	}
+}
+
 // This function will run the ShaderRegex engine to automatically patch shaders
 // on the fly and/or insert command lists on the fly. This may seem like a
 // slightly unusual place to run this, but the reason is because of another
@@ -881,6 +910,9 @@ void HackerContext::BeforeDraw(DrawContext &data)
 		}
 	}
 
+	// Process TextureOverride for current index buffer (enables handling=skip for IB hashes)
+	ProcessIndexBufferOverride(&data);
+
 out_profile:
 	if (Profiling::mode == Profiling::Mode::SUMMARY)
 		Profiling::end(&profiling_state, &Profiling::draw_overhead);
@@ -901,6 +933,11 @@ void HackerContext::AfterDraw(DrawContext &data)
 		if (data.post_commands[i]) {
 			RunCommandList(mHackerDevice, this, data.post_commands[i], &data.call_info, true);
 		}
+	}
+
+	// Run post command list for index buffer TextureOverride
+	if (data.post_ib_command_list) {
+		RunCommandList(mHackerDevice, this, data.post_ib_command_list, &data.call_info, true);
 	}
 
 	if (mHackerDevice->mStereoHandle && data.oldSeparation != FLT_MAX) {
@@ -2821,16 +2858,23 @@ STDMETHODIMP_(void) HackerContext::IASetIndexBuffer(THIS_
 {
 	mOrigContext1->IASetIndexBuffer(pIndexBuffer, Format, Offset);
 
-	// This is only used for index buffer hunting nowadays since the
-	// command list checks the hash on demand only when it is needed
+	// Track IB hash when hunting is enabled OR when TextureOverrides exist
+	// This enables TextureOverride handling=skip to work for index buffers
 	mCurrentIndexBuffer = 0;
-	if (pIndexBuffer && G->hunting == HUNTING_MODE_ENABLED) {
+	if (pIndexBuffer && (G->hunting == HUNTING_MODE_ENABLED || !G->mTextureOverrideMap.empty())) {
 		mCurrentIndexBuffer = GetResourceHash(pIndexBuffer);
 		if (mCurrentIndexBuffer) {
-			// When hunting, save this as a visited index buffer to cycle through.
-			EnterCriticalSectionPretty(&G->mCriticalSection);
-			G->mVisitedIndexBuffers.insert(mCurrentIndexBuffer);
-			LeaveCriticalSection(&G->mCriticalSection);
+			LogDebug("IASetIndexBuffer: hash=%08lx\n", mCurrentIndexBuffer);
+			// Check if there's a TextureOverride for this IB
+			if (lookup_textureoverride(mCurrentIndexBuffer) != G->mTextureOverrideMap.end()) {
+				LogDebug("IASetIndexBuffer: Found TextureOverride for IB hash=%08lx\n", mCurrentIndexBuffer);
+			}
+			if (G->hunting == HUNTING_MODE_ENABLED) {
+				// When hunting, save this as a visited index buffer to cycle through.
+				EnterCriticalSectionPretty(&G->mCriticalSection);
+				G->mVisitedIndexBuffers.insert(mCurrentIndexBuffer);
+				LeaveCriticalSection(&G->mCriticalSection);
+			}
 		}
 	}
 }

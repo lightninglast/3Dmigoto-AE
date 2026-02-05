@@ -1,44 +1,83 @@
-![image](https://cloud.githubusercontent.com/assets/6544511/22624161/934dba64-eb27-11e6-8f78-46c902e96e1b.png)
-========
+# 3DMigoto for Arknights Endfield
 
-### Chiri's wrapper to enable fixing broken stereoscopic effects in DX11 games.
-#### Now also a general purpose DX11 modding tool.
+A mod loader for Arknights Endfield, enabling character skin mods, visual tweaks, and other customizations.
 
-<br>
+This is a fork of [bo3b/3Dmigoto](https://github.com/bo3b/3Dmigoto) with modifications specific to Arknights Endfield.
 
-This includes the entire code base, and it will compile, link, and run in it's current state.
+## Features
 
-This is not the end-user version of the tool, this is for people developing the code by fixing
-bugs, adding new features, or documenting how to use it.  You can find the latest releases https://github.com/bo3b/3Dmigoto/releases
-<br>
-<br>
-The current project is updated to using Visual Studio 2022 Community, so anyone can do development for free.
+- **Index Buffer TextureOverride Support** - Enables `handling=skip` and other commands to work with 8-character IB hashes
+- **Injection Loader** - Injects 3DMigoto directly into the game process
+- **Player & Dev Editions** - Pre-configured packages for regular players (optimized) and mod developers (hunting enabled)
 
-To get started do:
+## Quick Start (Players)
 
-1. Download VS2022 Community for Windows Desktop. https://visualstudio.microsoft.com/vs/community/
-1. Install VS2022 and be sure to select:
-   - "Programming Languages" -> "Visual C++"
-   - "Windows 10 SDK (10.0.19041.0)"
-   - "MSVC v143" (currently using C++14)
-1. Run VS2022.
-1. Git menu, Clone Repository.  Opens the page for cloning.
-1. Use Clone menu, and enter the repository: 
-https://github.com/bo3b/3Dmigoto.git
-1. Change the source-code destination to where you prefer, and then click Clone.
-1. Double click your new local repository to set it active (if you have others.)
-1. At the home menu in Git Changes, double click StereovisionHacks.sln to open the solution.
-1. Switch to Solution Explorer, and wait for it to parse all the files.
-1. Hit F7 to build the full solution.
-1. Output files are in .\builds\x64\Debug
-   - d3d11.dll
-   - nvapi64.dll
-   - d3dx.ini
-   - uninstall.bat
-   - ShaderFixes folder
-<br>
+1. Download the **Player** release from [Releases](https://github.com/lightninglast/3Dmigoto-AE/releases)
+2. Extract anywhere (e.g., Desktop)
+3. Add mods to the `Mods` folder
+4. Run `EndfieldLoader.exe`
+5. Launch the game normally - the loader will inject automatically
 
-#### If you have any questions or problems don't hesitate to contact us or leave Issues.
+## Quick Start (Mod Developers)
 
+1. Download the **Dev** release from [Releases](https://github.com/lightninglast/3Dmigoto-AE/releases)
+2. Extract anywhere
+3. Run `EndfieldLoader.exe`
+4. Launch the game normally - the loader will inject automatically
+5. Use hunting keys to find hashes:
+   - `Numpad 0` - Toggle hunting overlay / Cycle marking mode
+   - `Numpad 1/2` - Cycle pixel shaders, `3` - Copy hash
+   - `Numpad 4/5` - Cycle vertex shaders, `6` - Copy hash
+   - `Numpad 7/8` - Cycle index buffers, `9` - Copy hash
 
-Big, big, _impossibly_ big thanks to Chiri for open-sourcing 3Dmigoto.
+## Project Structure
+
+```
+Config/           - INI presets for Player/Dev modes
+Loader/           - Python injection loader source
+scripts/          - Build automation
+DirectX11/        - Modified 3DMigoto source
+```
+
+## Building from Source
+
+For general build instructions, see the [upstream 3DMigoto repository](https://github.com/bo3b/3Dmigoto).
+
+### Quick Build Steps
+
+1. Install Visual Studio 2022 with C++ and Windows 10/11 SDK
+2. Clone this repo
+3. Open `StereovisionHacks.sln`
+4. Build in Release x64
+5. Run `.\scripts\build-release.ps1` to create distribution packages
+
+### Build Requirements
+
+- Visual Studio 2022 (Community or Build Tools)
+- Windows 10/11 SDK (10.0.26100.0 or later)
+- Python 3.10+ with `pyinjector` and `psutil` (for loader)
+
+## Technical Changes from Upstream
+
+### Index Buffer TextureOverride Support
+
+The upstream 3DMigoto only processes TextureOverride command lists at draw time for shaders (16-char hashes). This fork adds support for Index Buffers (8-char hashes):
+
+- Modified `IASetIndexBuffer()` to track IB hash when TextureOverrides exist
+- Added `ProcessIndexBufferOverride()` to run command lists at draw time
+- Integrated into `BeforeDraw()` pipeline
+
+### Files Modified
+
+- `DirectX11/HackerContext.cpp` - IB override implementation
+- `DirectX11/HackerContext.h` - Added function declarations and struct members
+
+## Credits
+
+- [bo3b](https://github.com/bo3b) - 3DMigoto creator and maintainer
+- [SilentNightSound](https://github.com/SilentNightSound) - GIMI and modding tools
+- The modding community for testing and feedback
+
+## License
+
+This project inherits the GPL license from the original 3DMigoto project. See [LICENSE.GPL.txt](LICENSE.GPL.txt).

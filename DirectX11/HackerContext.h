@@ -36,6 +36,7 @@ struct DrawContext
 	ID3D11PixelShader *oldPixelShader;
 	ID3D11VertexShader *oldVertexShader;
 	CommandList *post_commands[5];
+	CommandList *post_ib_command_list;  // For index buffer TextureOverride post commands
 	DrawCallInfo call_info;
 
 	DrawContext(DrawCall type,
@@ -45,6 +46,7 @@ struct DrawContext
 		oldSeparation(FLT_MAX),
 		oldVertexShader(NULL),
 		oldPixelShader(NULL),
+		post_ib_command_list(NULL),
 		call_info(type, VertexCount, IndexCount, InstanceCount, FirstVertex, FirstIndex, FirstInstance,
 				indirect_buffer, args_offset)
 	{
@@ -152,6 +154,7 @@ private:
 		D3D11_MAPPED_SUBRESOURCE *pMappedResource);
 	void TrackAndDivertUnmap(ID3D11Resource *pResource, UINT Subresource);
 	void ProcessShaderOverride(ShaderOverride *shaderOverride, bool isPixelShader, DrawContext *data);
+	void ProcessIndexBufferOverride(DrawContext *data);  // Handle TextureOverride for index buffers
 	ID3D11PixelShader* SwitchPSShader(ID3D11PixelShader *shader);
 	ID3D11VertexShader* SwitchVSShader(ID3D11VertexShader *shader);
 	void RecordDepthStencil(ID3D11DepthStencilView *target);

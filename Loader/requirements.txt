@@ -1,0 +1,3 @@
+# Endfield 3DMigoto Loader Dependencies
+psutil>=5.9.0
+pyinjector>=1.1.0
