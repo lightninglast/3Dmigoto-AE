@@ -33,6 +33,12 @@ build/
 # PyInstaller
 EndfieldLoader.exe
 
+# Instructions
+.github/instructions.md
+
+# Temp files
+TempUserLog.txt
+
 # OS files
 Thumbs.db
 .DS_Store
